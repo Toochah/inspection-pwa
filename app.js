@@ -663,16 +663,35 @@ function handleRoutePointClick(e) {
 }
 
 function openPointDetail(assetId) {
+    console.log('📍 openPointDetail:', assetId);
+    
     const point = AppState.currentPoints?.find(p => p.asset_id === assetId);
-    if (!point) return;
+    console.log('🔍 Точка:', point);
     
+    if (!point) {
+        console.error('❌ Точка не найдена:', assetId);
+        showToast('Точка не найдена: ' + assetId, 'danger');
+        return;
+    }
+
     AppState.currentPointId = assetId;
-    
+
     // Заголовок
-    document.getElementById('pointDetailTitle').textContent = `${point.asset_id} • ${point.name}`;
-    document.getElementById('pointCategory').textContent = point.category;
-    document.getElementById('pointOrder').textContent = point.route_order;
+    const titleEl = document.getElementById('pointDetailTitle');
+    if (titleEl) {
+        titleEl.textContent = `${point.asset_id} • ${point.name}`;
+    }
     
+    const categoryEl = document.getElementById('pointCategory');
+    if (categoryEl) {
+        categoryEl.textContent = point.category;
+    }
+    
+    const orderEl = document.getElementById('pointOrder');
+    if (orderEl) {
+        orderEl.textContent = point.route_order;
+    }
+
     // Дополнительная информация о точке
     let pointInfoHTML = '';
     if (point.location) {
@@ -690,12 +709,15 @@ function openPointDetail(assetId) {
     if (point.install_year) {
         pointInfoHTML += `<p class="mb-2"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">calendar_today</i> ${point.install_year} г.</p>`;
     }
-    
+
     const pointInfoContainer = document.getElementById('pointInfo');
     if (pointInfoContainer) {
         pointInfoContainer.innerHTML = pointInfoHTML;
+        console.log('✅ pointInfo обновлён');
+    } else {
+        console.warn('⚠️ pointInfo контейнер не найден');
     }
-    
+
     // Чек-лист
     const checklist = Checklists[point.checklist_template];
     const checklistContainer = document.getElementById('checklistContainer');
@@ -725,20 +747,38 @@ function openPointDetail(assetId) {
         }
         
         checklistContainer.innerHTML = checklistHTML;
+        console.log('✅ Чек-лист обновлён');
     } else {
         checklistContainer.innerHTML = '<div class="text-muted p-3">Чек-лист не найден</div>';
+        console.warn('⚠️ Чек-лист не найден:', point.checklist_template);
+    }
+
+    // Фото
+    const photoPreview = document.getElementById('photoPreview');
+    if (photoPreview) {
+        photoPreview.innerHTML = '';
     }
     
-    // Фото
-    document.getElementById('photoPreview').innerHTML = '';
+    // Сброс чекбоксов
     document.querySelectorAll('.checklist-check').forEach(c => c.checked = false);
-    document.getElementById('defectComment').value = '';
-    document.getElementById('defectCommentContainer').style.display = 'none';
     
+    const defectComment = document.getElementById('defectComment');
+    if (defectComment) {
+        defectComment.value = '';
+    }
+    
+    const defectCommentContainer = document.getElementById('defectCommentContainer');
+    if (defectCommentContainer) {
+        defectCommentContainer.style.display = 'none';
+    }
+
     // GPS
     updatePointGPSStatus(point);
     
-    new bootstrap.Modal(document.getElementById('pointDetailModal')).show();
+    console.log('✅ Открываем модальное окно');
+    
+    const modal = new bootstrap.Modal(document.getElementById('pointDetailModal'));
+    modal.show();
 }
 
 function updatePointGPSStatus(point) {
