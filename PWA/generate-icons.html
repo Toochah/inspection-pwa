@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор иконок PWA</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+        h1 { color: #1976d2; margin-bottom: 1rem; }
+        .instructions {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .icon-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .icon-card canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        .icon-card h3 {
+            margin: 1rem 0 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .icon-card button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .icon-card button:hover { background: #1565c0; }
+        .download-all {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .download-all:hover { background: #1b5e20; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Генератор иконок для PWA "Склад.Инспект"</h1>
+    
+    <div class="instructions">
+        <h2>Как использовать:</h2>
+        <ol>
+            <li>Нажмите <strong>"Скачать все иконки"</strong> внизу страницы</li>
+            <li>Или скачайте каждую иконку индивидуально</li>
+            <li>Сохраните файлы в папку <code>icons/</code></li>
+            <li>Для iOS также нужен <code>apple-touch-icon.png</code> (180x180)</li>
+        </ol>
+    </div>
+
+    <div class="icons-grid" id="iconsGrid"></div>
+
+    <button class="download-all" onclick="downloadAll()">📥 Скачать все иконки</button>
+
+    <script>
+        const sizes = [
+            { name: 'icon-72x72.png', size: 72 },
+            { name: 'icon-96x96.png', size: 96 },
+            { name: 'icon-128x128.png', size: 128 },
+            { name: 'icon-144x144.png', size: 144 },
+            { name: 'icon-152x152.png', size: 152 },
+            { name: 'icon-192x192.png', size: 192 },
+            { name: 'icon-384x384.png', size: 384 },
+            { name: 'icon-512x512.png', size: 512 },
+            { name: 'apple-touch-icon.png', size: 180 }
+        ];
+
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1976d2');
+            gradient.addColorStop(1, '#2196f3');
+            
+            // Background rounded rectangle
+            ctx.fillStyle = gradient;
+            const radius = size * 0.125;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+            
+            const center = size / 2;
+            const scale = size / 512;
+            
+            // Warehouse building
+            ctx.strokeStyle = 'white';
+            ctx.fillStyle = 'white';
+            ctx.lineWidth = 8 * scale;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Building body
+            ctx.beginPath();
+            ctx.moveTo(center - 160 * scale, center - 80 * scale);
+            ctx.lineTo(center, center - 120 * scale);
+            ctx.lineTo(center + 160 * scale, center - 80 * scale);
+            ctx.lineTo(center + 160 * scale, center + 80 * scale);
+            ctx.lineTo(center - 160 * scale, center + 80 * scale);
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Columns
+            const columnWidth = 40 * scale;
+            const columnHeight = 120 * scale;
+            const positions = [-140, -60, 20, 100];
+            
+            positions.forEach(x => {
+                ctx.fillRect(center + x * scale, center - 60 * scale, columnWidth, columnHeight);
+            });
+            
+            // Roof
+            ctx.beginPath();
+            ctx.moveTo(center - 180 * scale, center - 90 * scale);
+            ctx.lineTo(center, center - 140 * scale);
+            ctx.lineTo(center + 180 * scale, center - 90 * scale);
+            ctx.stroke();
+            
+            // Checkmark
+            ctx.beginPath();
+            ctx.moveTo(center - 40 * scale, center + 40 * scale);
+            ctx.lineTo(center, center + 80 * scale);
+            ctx.lineTo(center + 80 * scale, center - 20 * scale);
+            ctx.stroke();
+            
+            // QR corner markers
+            ctx.strokeRect(center - 200 * scale, center - 200 * scale, 40 * scale, 40 * scale);
+            ctx.strokeRect(center + 160 * scale, center - 200 * scale, 40 * scale, 40 * scale);
+            ctx.strokeRect(center - 200 * scale, center + 160 * scale, 40 * scale, 40 * scale);
+        }
+
+        function createIcon(sizeInfo) {
+            const canvas = document.createElement('canvas');
+            canvas.width = sizeInfo.size;
+            canvas.height = sizeInfo.size;
+            drawIcon(canvas, sizeInfo.size);
+            return canvas;
+        }
+
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Render all icons
+        const grid = document.getElementById('iconsGrid');
+        const canvases = [];
+
+        sizes.forEach(sizeInfo => {
+            const card = document.createElement('div');
+            card.className = 'icon-card';
+            
+            const canvas = createIcon(sizeInfo);
+            canvases.push({ canvas, filename: sizeInfo.name });
+            
+            const displayCanvas = document.createElement('canvas');
+            displayCanvas.width = 128;
+            displayCanvas.height = 128;
+            const displayCtx = displayCanvas.getContext('2d');
+            displayCtx.drawImage(canvas, 0, 0, 128, 128);
+            
+            card.appendChild(displayCanvas);
+            
+            const title = document.createElement('h3');
+            title.textContent = `${sizeInfo.name} (${sizeInfo.size}x${sizeInfo.size})`;
+            card.appendChild(title);
+            
+            const button = document.createElement('button');
+            button.textContent = '📥 Скачать';
+            button.onclick = () => downloadCanvas(canvas, sizeInfo.name);
+            card.appendChild(button);
+            
+            grid.appendChild(card);
+        });
+
+        function downloadAll() {
+            canvases.forEach(({ canvas, filename }, index) => {
+                setTimeout(() => {
+                    downloadCanvas(canvas, filename);
+                }, index * 300);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "Склад.Инспект v2.1 - Обход дежурного",
+  "short_name": "Склад.Инспект",
+  "version": "2.1.0",
+  "description": "PWA приложение для проведения осмотров складского комплекса - 23 точки с QR-кодами (Версия 2.1.0)",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"]
+}
