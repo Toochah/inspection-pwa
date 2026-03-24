@@ -1026,6 +1026,7 @@ function startScanner() {
             });
     }
 
+    // Обработчик кнопки закрытия
     const closeBtn = document.querySelector('#scannerModal .scanner-close');
     closeBtn.onclick = () => {
         if (video.srcObject) {
@@ -1033,6 +1034,28 @@ function startScanner() {
         }
         modal.hide();
     };
+    
+    // Обработчик ручного ввода (каждый раз при открытии)
+    const manualBtn = document.getElementById('manualAssetBtn');
+    if (manualBtn) {
+        // Удаляем старый обработчик
+        const newBtn = manualBtn.cloneNode(true);
+        manualBtn.parentNode.replaceChild(newBtn, manualBtn);
+        
+        // Добавляем новый обработчик
+        newBtn.addEventListener('click', handleManualAsset);
+    }
+    
+    // Обработчик Enter в поле ввода
+    const manualInput = document.getElementById('manualAssetCode');
+    if (manualInput) {
+        manualInput.value = ''; // Очищаем поле
+        manualInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleManualAsset();
+            }
+        });
+    }
 }
 
 function handleManualAsset() {
