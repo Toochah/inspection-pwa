@@ -994,16 +994,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function startScanner() {
     const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
     modal.show();
-    
+
     const video = document.getElementById('scannerVideo');
     const nextPoint = AppState.currentPoints?.find(p => !AppState.completedPoints.includes(p.asset_id));
-    
+
     if (nextPoint) {
-        document.getElementById('nextPointInfo').textContent = 
-            `Следующая точка: №${nextPoint.route_order} ${nextPoint.asset_id}`;
+        document.getElementById('nextPointInfo').textContent =
+            `Следующая точка: №${nextPoint.route_order} ${nextPoint.asset_id} • ${nextPoint.name}`;
+    } else {
+        document.getElementById('nextPointInfo').textContent = 'Все точки пройдены!';
     }
-    
-    // Оптимизированный запрос камеры для мобильных
+
+    // Запрос камеры для мобильных
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const constraints = {
             video: {
@@ -1012,19 +1014,18 @@ function startScanner() {
                 height: { ideal: 720 }
             }
         };
-        
+
         navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => {
                 video.srcObject = stream;
-                // Запускаем сканирование
-                requestAnimationFrame(scanForQR);
+                showToast('📷 Камера включена. Введите код точки вручную.', 'info');
             })
             .catch(err => {
                 console.error('Ошибка камеры:', err);
-                showToast('Не удалось получить доступ к камере. Проверьте разрешения.', 'warning');
+                showToast('Камера недоступна. Введите код вручную.', 'warning');
             });
     }
-    
+
     const closeBtn = document.querySelector('#scannerModal .scanner-close');
     closeBtn.onclick = () => {
         if (video.srcObject) {
@@ -1032,13 +1033,6 @@ function startScanner() {
         }
         modal.hide();
     };
-}
-
-// Простая функция сканирования QR (для демонстрации)
-function scanForQR() {
-    // Здесь будет интеграция с библиотекой QR сканера
-    // Например, jsQR или QuaggaJS
-    console.log('📷 Сканирование QR...');
 }
 
 function handleManualAsset() {
