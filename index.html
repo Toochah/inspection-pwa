@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1976d2">
+    <meta name="description" content="PWA для проведения осмотров складского комплекса">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <!-- Version: 2.1.1 - 2026.03.23 -->
+    <title>Склад.Инспект - Обход дежурного</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offlineIndicator">
+        <i class="bi bi-wifi-off"></i> Работа в автономном режиме
+    </div>
+
+    <!-- Login Screen -->
+    <div class="view active" id="loginView">
+        <div class="login-screen">
+            <div class="login-card">
+                <div class="logo">
+                    <i class="material-icons">security</i>
+                </div>
+                <h2>Склад.Инспект</h2>
+                <p class="text-muted mb-4">Обход дежурного</p>
+                
+                <!-- Кнопка сброса сессии -->
+                <button class="btn btn-sm btn-outline-secondary w-100 mb-3" id="clearSessionBtn" type="button" style="display: none;">
+                    <i class="material-icons me-1" style="font-size: 16px;">refresh</i>Сбросить сессию
+                </button>
+                
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Выберите дежурного</label>
+                        <select class="form-select" id="loginName" required>
+                            <option value="">-- Выберите фамилию --</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Должность</label>
+                        <input type="text" class="form-control" id="loginPosition" readonly style="background: #f5f5f5;">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="material-icons me-2">login</i>Войти
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="view" id="mainView" style="display: none;">
+        <!-- Header -->
+        <header class="app-header" id="appHeader">
+            <div class="header-content">
+                <h1><i class="material-icons me-2">security</i><span id="headerTitle">Обход дежурного</span></h1>
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="material-icons">person</i>
+                    </div>
+                    <span id="userName">-</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div class="view active" id="dashboardView">
+                <!-- Обход активен -->
+                <div id="activeRoundBlock" style="display: none;">
+                    <!-- Timer -->
+                    <div class="route-timer" id="routeTimer">
+                        <div class="time-label">⏱️ Время в пути</div>
+                        <div class="time-display" id="timerDisplay">00:00:00</div>
+                        <div class="time-label" id="timerStartTime">Начат в --:--</div>
+                    </div>
+
+                    <!-- Next Point Card -->
+                    <div class="next-point-card" id="nextPointCard">
+                        <div class="point-number" id="nextPointNumber">9</div>
+                        <div class="point-name" id="nextPointName">GRSH-02 • ГРЩ 2</div>
+                        <div class="point-distance">
+                            <i class="material-icons">navigation</i>
+                            <span id="nextPointDistance">45м от вас</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопка начать обход -->
+                <div id="startRoundBlock">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="material-icons" style="font-size: 5rem; color: #1976d2; margin-bottom: 1rem;">security</i>
+                            <h3 class="mb-3">Обход дежурного</h3>
+                            <p class="text-muted mb-4">23 точки складского комплекса</p>
+                            <button class="btn btn-primary btn-lg w-100" id="startRoundBtn">
+                                <i class="material-icons me-2">play_arrow</i>Начать обход
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats (показываем только если обход активен) -->
+                <div class="stats-grid" id="statsGrid" style="display: none;">
+                    <div class="stat-card success">
+                        <div class="stat-icon"><i class="material-icons">check_circle</i></div>
+                        <div class="stat-value" id="completedPoints">0</div>
+                        <div class="stat-label">Пройдено</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon"><i class="material-icons">warning</i></div>
+                        <div class="stat-value" id="defectCount">0</div>
+                        <div class="stat-label">Дефекты</div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-icon"><i class="material-icons">route</i></div>
+                        <div class="stat-value" id="totalPoints">23</div>
+                        <div class="stat-label">Всего точек</div>
+                    </div>
+                    <div class="stat-card primary">
+                        <div class="stat-icon"><i class="material-icons">assignment_turned_in</i></div>
+                        <div class="stat-value" id="reportsCount">0</div>
+                        <div class="stat-label">Отчёты</div>
+                    </div>
+                </div>
+
+                <!-- Progress Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">donut_large</i>Прогресс обхода
+                    </div>
+                    <div class="card-body text-center">
+                        <svg class="progress-ring" viewBox="0 0 120 120">
+                            <circle class="bg" cx="60" cy="60" r="52"/>
+                            <circle class="progress" cx="60" cy="60" r="52" 
+                                    stroke-dasharray="326.73" stroke-dashoffset="326.73"/>
+                            <text class="progress-text" x="60" y="65" text-anchor="middle">0%</text>
+                        </svg>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="status-badge info" id="currentStatus">
+                                <i class="material-icons">schedule</i>Не начат
+                            </span>
+                        </div>
+                        <div class="mt-3" id="roundInfo" style="display: none;">
+                            <small class="text-muted">Начат: <span id="roundStartTime"></span></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">bolt</i>Быстрые действия
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-lg" id="startRoundBtn">
+                                <i class="material-icons me-2">play_arrow</i>Начать обход
+                            </button>
+                            <button class="btn btn-outline-primary btn-lg" id="continueRoundBtn" style="display: none;">
+                                <i class="material-icons me-2">resume</i>Продолжить обход
+                            </button>
+                            <button class="btn btn-outline-primary" id="goToRouteBtn">
+                                <i class="material-icons me-2">map</i>Показать маршрут
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Reports -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">history</i>Последние отчёты
+                    </div>
+                    <div class="card-body p-0" id="recentReports">
+                        <div class="text-muted text-center py-4">Нет отчётов</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route View -->
+            <div class="view" id="routeView">
+                <!-- GPS Status -->
+                <div class="gps-status" id="gpsStatus">
+                    <i class="material-icons">gps_not_fixed</i>
+                    <span>GPS ожидание...</span>
+                </div>
+
+                <!-- Filter -->
+                <div class="mb-3">
+                    <select class="form-select" id="routeFilter">
+                        <option value="all">Все точки (23)</option>
+                        <option value="pending">Не пройденные</option>
+                        <option value="completed">Пройденные</option>
+                        <option value="defect">С дефектами</option>
+                    </select>
+                </div>
+
+                <!-- Route Points List -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">route</i>Маршрут обхода (23 точки)
+                    </div>
+                    <div class="card-body p-0" id="routePointsList">
+                        <!-- Загружается через JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanner View -->
+            <div class="view" id="scannerView">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">qr_code_scanner</i>Сканер QR-кодов
+                    </div>
+                    <div class="card-body text-center py-5">
+                        <i class="material-icons scanner-icon" style="font-size: 5rem; color: #ccc;">qr_code_scanner</i>
+                        <p class="mt-3 text-muted">Нажмите кнопку ниже для запуска сканера</p>
+                        <button class="btn btn-primary mt-3" id="startScannerBtn">
+                            <i class="material-icons me-2">camera_alt</i>Запустить камеру
+                        </button>
+                        <div class="mt-3">
+                            <small class="text-muted">Или введите код точки вручную</small>
+                        </div>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" id="manualAssetCode" placeholder="Например: VENT-01">
+                            <button class="btn btn-outline-primary" id="manualAssetBtn">OK</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">history</i>История сканирований
+                    </div>
+                    <div class="card-body p-0" id="scanHistory">
+                        <div class="text-muted text-center py-3">Нет сканирований</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports View -->
+            <div class="view" id="reportsView">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">assignment</i>Мои отчёты
+                    </div>
+                    <div class="card-body p-0" id="myReports">
+                        <div class="text-muted text-center py-4">Нет отчётов</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">description</i>Экспорт данных
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary w-100 mb-2" id="exportExcelBtn">
+                            <i class="material-icons me-2">table_chart</i>Экспорт в Excel
+                        </button>
+                        <button class="btn btn-outline-primary w-100" id="exportPdfBtn">
+                            <i class="material-icons me-2">print</i>Печать отчёта
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div class="view" id="settingsView">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">person</i>Профиль
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">ФИО</label>
+                            <input type="text" class="form-control" id="profileName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Должность</label>
+                            <input type="text" class="form-control" id="profilePosition" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Роль в системе</label>
+                            <input type="text" class="form-control" id="profileRole" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Тип обхода</label>
+                            <input type="text" class="form-control" id="currentInspectionType" value="Обход дежурного" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">settings</i>Настройки
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="gpsEnabled" checked>
+                            <label class="form-check-label" for="gpsEnabled">
+                                GPS-валидация (5м)
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="notificationsEnabled" checked>
+                            <label class="form-check-label" for="notificationsEnabled">
+                                Telegram-уведомления
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="offlineMode">
+                            <label class="form-check-label" for="offlineMode">
+                                Автономный режим
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="material-icons me-2">info</i>О приложении
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Версия:</strong> <span id="appVersion">2.1.0</span></p>
+                        <p><strong>Дата сборки:</strong> <span id="appBuildDate">2026.03.23</span></p>
+                        <p><strong>Тип обхода:</strong> Обход дежурного</p>
+                        <p><strong>Точек в обходе:</strong> 23</p>
+                        <p><strong>Дата обновления:</strong> Март 2026</p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" id="showVersionInfoBtn">
+                            <i class="material-icons me-1" style="font-size: 16px;">info</i>Подробная информация
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline-danger w-100" id="logoutBtn">
+                    <i class="material-icons me-2">logout</i>Выйти
+                </button>
+                
+                <button class="btn btn-outline-warning w-100 mt-2" id="clearCacheBtn">
+                    <i class="material-icons me-2">cleaning_services</i>Очистить кэш
+                </button>
+                
+                <button class="btn btn-outline-secondary w-100 mt-2" id="clearSessionBtn2">
+                    <i class="material-icons me-2">refresh</i>Сбросить сессию
+                </button>
+                
+                <div class="text-center mt-3">
+                    <small class="text-muted">PWA для обхода складского комплекса<br>23 точки с QR-кодами</small>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav" id="bottomNav" style="display: none;">
+            <a href="#" class="nav-item active" data-view="dashboardView">
+                <i class="material-icons">dashboard</i>
+                <span>Дашборд</span>
+            </a>
+            <a href="#" class="nav-item" data-view="routeView">
+                <i class="material-icons">route</i>
+                <span>Маршрут</span>
+            </a>
+            <a href="#" class="nav-item" data-view="scannerView">
+                <i class="material-icons">qr_code_scanner</i>
+                <span>Сканер</span>
+            </a>
+            <a href="#" class="nav-item" data-view="reportsView">
+                <i class="material-icons">assignment</i>
+                <span>Отчёты</span>
+            </a>
+            <a href="#" class="nav-item" data-view="settingsView">
+                <i class="material-icons">settings</i>
+                <span>Настройки</span>
+            </a>
+        </nav>
+
+        <!-- FAB - Emergency Button -->
+        <button class="fab emergency" id="emergencyBtn" title="Аварийное уведомление" style="display: none;">
+            <i class="material-icons">warning</i>
+        </button>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div class="modal fade" id="scannerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen">
+            <div class="modal-content" style="background: transparent;">
+                <div class="modal-body p-0 d-flex align-items-center justify-content-center">
+                    <div class="scanner-overlay">
+                        <button class="scanner-close" data-bs-dismiss="modal">
+                            <i class="material-icons">close</i>
+                        </button>
+                        <div class="scanner-frame">
+                            <video id="scannerVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px;"></video>
+                        </div>
+                        <p class="text-white mt-4">Наведите камеру на QR-код</p>
+                        <p class="text-white-50" id="nextPointInfo"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Point Detail Modal -->
+    <div class="modal fade" id="pointDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pointDetailTitle">-</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- GPS Info -->
+                    <div class="gps-status" id="pointGpsStatus">
+                        <i class="material-icons">gps_not_fixed</i>
+                        <span>Проверка GPS...</span>
+                    </div>
+
+                    <!-- Point Info -->
+                    <div class="mb-4" id="pointInfo">
+                        <p><strong>Категория:</strong> <span id="pointCategory">-</span></p>
+                        <p><strong>Порядок в маршруте:</strong> №<span id="pointOrder">-</span></p>
+                    </div>
+
+                    <!-- Checklist -->
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="material-icons me-2">checklist</i>Чек-лист
+                        </div>
+                        <div class="card-body p-0" id="checklistContainer">
+                            <!-- Загружается через JS -->
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div class="mt-3">
+                        <label class="form-label">Фотофиксация</label>
+                        <div class="photo-upload" id="photoUpload">
+                            <i class="material-icons">add_a_photo</i>
+                            <div>Добавить фото (1-3)</div>
+                            <input type="file" accept="image/*" capture="camera" multiple hidden id="photoInput">
+                        </div>
+                        <div class="photo-preview-container d-flex flex-wrap" id="photoPreview"></div>
+                    </div>
+
+                    <!-- Defect Comment -->
+                    <div class="mt-3" id="defectCommentContainer" style="display: none;">
+                        <label class="form-label">Описание дефекта</label>
+                        <textarea class="form-control" id="defectComment" rows="3" placeholder="Опишите обнаруженный дефект..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-warning" id="markDefectBtn">
+                        <i class="material-icons me-2">warning</i>Дефект
+                    </button>
+                    <button type="button" class="btn btn-success" id="completePointBtn">
+                        <i class="material-icons me-2">check_circle</i>Отметить пройденным
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Modal -->
+    <div class="modal fade" id="emergencyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="material-icons me-2">warning</i>Аварийное уведомление
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Вы собираетесь отправить аварийное уведомление всем специалистам!</p>
+                    <div class="mb-3">
+                        <label class="form-label">Описание ситуации</label>
+                        <textarea class="form-control" id="emergencyText" rows="3" placeholder="Опишите аварийную ситуацию..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Фото (опционально)</label>
+                        <div class="photo-upload" id="emergencyPhotoUpload">
+                            <i class="material-icons">add_a_photo</i>
+                            <div>Добавить фото</div>
+                            <input type="file" accept="image/*" capture="camera" hidden id="emergencyPhotoInput">
+                        </div>
+                        <div class="photo-preview-container d-flex flex-wrap" id="emergencyPhotoPreview"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-danger" id="sendEmergencyBtn">
+                        <i class="material-icons me-2">send</i>Отправить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
