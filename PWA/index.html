@@ -30,10 +30,10 @@
         <div class="login-screen">
             <div class="login-card">
                 <div class="logo">
-                    <i class="material-icons">warehouse</i>
+                    <i class="material-icons">security</i>
                 </div>
                 <h2>Склад.Инспект</h2>
-                <p class="text-muted mb-4">Обход дежурного - 23 точки</p>
+                <p class="text-muted mb-4">Обход дежурного</p>
                 
                 <!-- Кнопка сброса сессии -->
                 <button class="btn btn-sm btn-outline-secondary w-100 mb-3" id="clearSessionBtn" type="button" style="display: none;">
@@ -42,25 +42,16 @@
                 
                 <form id="loginForm">
                     <div class="mb-3">
-                        <label class="form-label">ФИО</label>
+                        <label class="form-label">Выберите дежурного</label>
                         <select class="form-select" id="loginName" required>
-                            <option value="">Выберите сотрудника</option>
+                            <option value="">-- Выберите фамилию --</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Должность</label>
                         <input type="text" class="form-control" id="loginPosition" readonly style="background: #f5f5f5;">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Роль в системе</label>
-                        <select class="form-select" id="loginRole" required>
-                            <option value="">Выберите роль</option>
-                            <option value="guard">Дежурный персонал</option>
-                            <option value="engineer">Инженер</option>
-                            <option value="specialist">Специалист</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
                         <i class="material-icons me-2">login</i>Войти
                     </button>
                 </form>
@@ -87,25 +78,42 @@
         <main class="main-content">
             <!-- Dashboard View -->
             <div class="view active" id="dashboardView">
-                <!-- Timer -->
-                <div class="route-timer" id="routeTimer" style="display: none;">
-                    <div class="time-label">⏱️ Время в пути</div>
-                    <div class="time-display" id="timerDisplay">00:00:00</div>
-                    <div class="time-label" id="timerStartTime">Начат в --:--</div>
-                </div>
+                <!-- Обход активен -->
+                <div id="activeRoundBlock" style="display: none;">
+                    <!-- Timer -->
+                    <div class="route-timer" id="routeTimer">
+                        <div class="time-label">⏱️ Время в пути</div>
+                        <div class="time-display" id="timerDisplay">00:00:00</div>
+                        <div class="time-label" id="timerStartTime">Начат в --:--</div>
+                    </div>
 
-                <!-- Next Point Card -->
-                <div class="next-point-card" id="nextPointCard" style="display: none;">
-                    <div class="point-number" id="nextPointNumber">9</div>
-                    <div class="point-name" id="nextPointName">GRSH-02 • ГРЩ 2</div>
-                    <div class="point-distance">
-                        <i class="material-icons">navigation</i>
-                        <span id="nextPointDistance">45м от вас</span>
+                    <!-- Next Point Card -->
+                    <div class="next-point-card" id="nextPointCard">
+                        <div class="point-number" id="nextPointNumber">9</div>
+                        <div class="point-name" id="nextPointName">GRSH-02 • ГРЩ 2</div>
+                        <div class="point-distance">
+                            <i class="material-icons">navigation</i>
+                            <span id="nextPointDistance">45м от вас</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Stats -->
-                <div class="stats-grid">
+                <!-- Кнопка начать обход -->
+                <div id="startRoundBlock">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="material-icons" style="font-size: 5rem; color: #1976d2; margin-bottom: 1rem;">security</i>
+                            <h3 class="mb-3">Обход дежурного</h3>
+                            <p class="text-muted mb-4">23 точки складского комплекса</p>
+                            <button class="btn btn-primary btn-lg w-100" id="startRoundBtn">
+                                <i class="material-icons me-2">play_arrow</i>Начать обход
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats (показываем только если обход активен) -->
+                <div class="stats-grid" id="statsGrid" style="display: none;">
                     <div class="stat-card success">
                         <div class="stat-icon"><i class="material-icons">check_circle</i></div>
                         <div class="stat-value" id="completedPoints">0</div>
@@ -346,6 +354,10 @@
                 
                 <button class="btn btn-outline-warning w-100 mt-2" id="clearCacheBtn">
                     <i class="material-icons me-2">cleaning_services</i>Очистить кэш
+                </button>
+                
+                <button class="btn btn-outline-secondary w-100 mt-2" id="clearSessionBtn2">
+                    <i class="material-icons me-2">refresh</i>Сбросить сессию
                 </button>
                 
                 <div class="text-center mt-3">

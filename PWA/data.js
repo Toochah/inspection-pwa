@@ -5,27 +5,14 @@
 
 // ============================================
 // Пользователи (из spisok.csv)
+// Дежурные - техники по обслуживанию электрооборудования (5 человек)
 // ============================================
 const Users = [
-    { id: 1, full_name: "Сальников Михаил Владимирович", position: "Главный инженер", default_role: "engineer" },
-    { id: 2, full_name: "Баранов Евгений Михайлович", position: "Инженер по эксплуатации", default_role: "engineer" },
-    { id: 3, full_name: "Акузин Данис Геннадьевич", position: "Техник по обслуживанию электрооборудования", default_role: "specialist" },
-    { id: 4, full_name: "Хакимзянов Илшат Шарифзянович", position: "Техник по обслуживанию электрооборудования", default_role: "specialist" },
-    { id: 5, full_name: "Зотов Александр Владимирович", position: "Техник по обслуживанию электрооборудования", default_role: "specialist" },
-    { id: 6, full_name: "Сергеев Олег Павлович", position: "Техник по обслуживанию электрооборудования", default_role: "specialist" },
-    { id: 7, full_name: "Гритчин Андрей Владимирович", position: "Техник по обслуживанию электрооборудования", default_role: "specialist" },
-    { id: 8, full_name: "Трегубов Алексей Алексеевич", position: "Техник КиПа", default_role: "specialist" },
-    { id: 9, full_name: "Асеев Олег Николаевич", position: "Дворник", default_role: "guard" },
-    { id: 10, full_name: "Алексеев Владимир Мингаевич", position: "Слесарь сантехник", default_role: "specialist" },
-    { id: 11, full_name: "Хафизов Галим Акрамович", position: "Слесарь сантехник", default_role: "specialist" },
-    { id: 12, full_name: "Барыкин Александр Геннадьевич", position: "Слесарь ремонтник", default_role: "specialist" },
-    { id: 13, full_name: "Косогоров Сергей Леонидович", position: "Слесарь ремонтник", default_role: "specialist" },
-    { id: 14, full_name: "Миронов Юрий Сергеевич", position: "Инженер энергетик", default_role: "engineer" },
-    { id: 15, full_name: "Осокин Николай Геннадьевич", position: "Механизатор", default_role: "specialist" },
-    { id: 16, full_name: "Шатунов Николай Викторович", position: "Механизатор", default_role: "specialist" },
-    { id: 17, full_name: "Биктуганова Кристина Андреевна", position: "Уборщица", default_role: "guard" },
-    { id: 18, full_name: "Дильмухаметов Фидан Рафикович", position: "Электромеханик по ВиК", default_role: "specialist" },
-    { id: 19, full_name: "Кузнецов Олег Александрович", position: "Дворник", default_role: "guard" }
+    { id: 1, full_name: "Акузин Данис Геннадьевич", position: "Техник по обслуживанию электрооборудования", default_role: "guard" },
+    { id: 2, full_name: "Хакимзянов Илшат Шарифзянович", position: "Техник по обслуживанию электрооборудования", default_role: "guard" },
+    { id: 3, full_name: "Зотов Александр Владимирович", position: "Техник по обслуживанию электрооборудования", default_role: "guard" },
+    { id: 4, full_name: "Сергеев Олег Павлович", position: "Техник по обслуживанию электрооборудования", default_role: "guard" },
+    { id: 5, full_name: "Гритчин Андрей Владимирович", position: "Техник по обслуживанию электрооборудования", default_role: "guard" }
 ];
 
 // ============================================

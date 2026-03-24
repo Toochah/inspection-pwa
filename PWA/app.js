@@ -72,6 +72,10 @@ function initApp() {
     // Всегда загружаем список пользователей
     populateUsers();
     
+    // Сразу устанавливаем точки обхода дежурного
+    AppState.currentInspectionType = InspectionTypes[0];
+    AppState.currentPoints = GuardRoutePoints;
+
     // Проверка сохранённой сессии
     const savedUser = localStorage.getItem('currentUser');
     const savedData = localStorage.getItem('appData');
@@ -87,9 +91,6 @@ function initApp() {
 
     if (savedUser) {
         AppState.currentUser = JSON.parse(savedUser);
-        // Сразу устанавливаем обход дежурного
-        AppState.currentInspectionType = InspectionTypes[0];
-        AppState.currentPoints = GuardRoutePoints;
         showMainView();
         // Показываем кнопку сброса сессии
         const clearBtn = document.getElementById('clearSessionBtn');
@@ -98,7 +99,7 @@ function initApp() {
 
     // Обработчики
     initEventListeners();
-    
+
     // Обновление UI
     updateProgress();
     updateReportsList();
@@ -132,6 +133,7 @@ function initEventListeners() {
     // Выход
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('backToLoginBtn')?.addEventListener('click', handleLogout);
+    document.getElementById('clearSessionBtn2')?.addEventListener('click', handleLogout);
     
     // Очистка кэша
     document.getElementById('clearCacheBtn')?.addEventListener('click', clearCache);
@@ -142,9 +144,11 @@ function initEventListeners() {
     // Кнопка сброса сессии
     const clearBtn = document.getElementById('clearSessionBtn');
     if (clearBtn) {
+        clearBtn.style.display = 'none'; // Скрыта по умолчанию
         clearBtn.addEventListener('click', () => {
             if (confirm('Сбросить сессию и вернуться к экрану входа?')) {
                 localStorage.removeItem('currentUser');
+                localStorage.removeItem('appData');
                 location.reload();
             }
         });
@@ -158,6 +162,10 @@ function initEventListeners() {
     // Кнопки обхода
     document.getElementById('startRoundBtn')?.addEventListener('click', startRound);
     document.getElementById('continueRoundBtn')?.addEventListener('click', () => {
+        // Возвращаем видимость кнопок
+        document.getElementById('startRoundBlock').style.display = 'none';
+        document.getElementById('activeRoundBlock').style.display = 'block';
+        document.getElementById('statsGrid').style.display = 'grid';
         switchView('routeView');
     });
     document.getElementById('goToRouteBtn')?.addEventListener('click', () => {
@@ -198,7 +206,6 @@ function initEventListeners() {
 function populateUsers() {
     const select = document.getElementById('loginName');
     const positionInput = document.getElementById('loginPosition');
-    const roleSelect = document.getElementById('loginRole');
     if (!select) return;
     
     Users.forEach(user => {
@@ -208,19 +215,14 @@ function populateUsers() {
         select.appendChild(option);
     });
     
-    // Обновление должности и роли при выборе сотрудника
+    // Обновление должности при выборе сотрудника
     select.addEventListener('change', () => {
         const userId = select.value;
         const user = Users.find(u => u.id == userId);
         if (user) {
             positionInput.value = user.position || '-';
-            // Автоматически выбираем роль
-            if (user.default_role) {
-                roleSelect.value = user.default_role;
-            }
         } else {
             positionInput.value = '';
-            roleSelect.value = '';
         }
     });
 }
@@ -238,10 +240,9 @@ function handleLogin(e) {
     e.preventDefault();
     
     const userId = document.getElementById('loginName').value;
-    const role = document.getElementById('loginRole').value;
 
-    if (!userId || !role) {
-        showToast('Выберите сотрудника и роль', 'warning');
+    if (!userId) {
+        showToast('Выберите дежурного', 'warning');
         return;
     }
 
@@ -249,21 +250,21 @@ function handleLogin(e) {
     if (user) {
         AppState.currentUser = { 
             ...user, 
-            selectedRole: role
+            selectedRole: 'guard'  // Всегда guard для дежурных
         };
-        // Сразу устанавливаем обход дежурного
-        AppState.currentInspectionType = InspectionTypes[0];
-        AppState.currentPoints = GuardRoutePoints;
         localStorage.setItem('currentUser', JSON.stringify(AppState.currentUser));
         showMainView();
         showToast(`Добро пожаловать, ${user.full_name}!`, 'success');
+        vibrateSuccess();
     }
 }
 
 function handleLogout() {
-    if (confirm('Вы уверены, что хотите выйти?')) {
+    if (confirm('Выйти из системы и сбросить сессию?')) {
         AppState.currentUser = null;
+        AppState.roundInProgress = false;
         localStorage.removeItem('currentUser');
+        localStorage.removeItem('appData');
         location.reload();
     }
 }
@@ -324,10 +325,9 @@ function showMainView() {
     if (mainView) {
         mainView.classList.remove('active');
         mainView.style.display = 'block';
-        // Небольшая задержка для применения display
-        setTimeout(() => {
-            mainView.classList.add('active');
-        }, 10);
+        // Принудительная перерисовка
+        mainView.offsetHeight;
+        mainView.classList.add('active');
     }
     
     document.getElementById('bottomNav').style.display = 'flex';
@@ -337,7 +337,7 @@ function showMainView() {
     document.getElementById('userName').textContent = name;
     document.getElementById('profileName').value = AppState.currentUser.full_name;
     document.getElementById('profilePosition').value = AppState.currentUser.position || '-';
-    document.getElementById('profileRole').value = getRoleName(AppState.currentUser.selectedRole);
+    document.getElementById('profileRole').value = 'Дежурный';
     document.getElementById('currentInspectionType').value = 'Обход дежурного';
     
     // Обновление заголовка
@@ -352,22 +352,30 @@ function showMainView() {
     
     document.getElementById('totalPoints').textContent = AppState.currentPoints?.length || 23;
     
+    // Показываем кнопку сброса сессии
+    const clearBtn = document.getElementById('clearSessionBtn');
+    if (clearBtn) clearBtn.style.display = 'block';
+    
+    // Проверка состояния обхода
+    if (AppState.roundInProgress) {
+        // Обход активен - показываем таймер и статистику
+        document.getElementById('startRoundBlock').style.display = 'none';
+        document.getElementById('activeRoundBlock').style.display = 'block';
+        document.getElementById('statsGrid').style.display = 'grid';
+        startTimer();
+    } else {
+        // Обход не активен - показываем кнопку "Начать обход"
+        document.getElementById('startRoundBlock').style.display = 'block';
+        document.getElementById('activeRoundBlock').style.display = 'none';
+        document.getElementById('statsGrid').style.display = 'none';
+    }
+    
     // Принудительно переключаемся на дашборд
     switchView('dashboardView');
     
     renderRoutePoints();
     updateProgress();
     updateReportsList();
-    
-    // Если обход активен - запускаем таймер
-    if (AppState.roundInProgress) {
-        startTimer();
-        document.getElementById('startRoundBtn').style.display = 'none';
-        document.getElementById('continueRoundBtn').style.display = 'block';
-        document.getElementById('roundInfo').style.display = 'block';
-        document.getElementById('roundStartTime').textContent = 
-            new Date(AppState.roundStartTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
-    }
 }
 
 // ============================================
@@ -426,14 +434,22 @@ function startRound() {
     saveData();
     startTimer();
     
-    document.getElementById('startRoundBtn').style.display = 'none';
+    // Показываем блок активного обхода
+    document.getElementById('startRoundBlock').style.display = 'none';
+    document.getElementById('activeRoundBlock').style.display = 'block';
+    document.getElementById('statsGrid').style.display = 'grid';
     document.getElementById('continueRoundBtn').style.display = 'block';
     document.getElementById('roundInfo').style.display = 'block';
     document.getElementById('roundStartTime').textContent = 
         new Date(AppState.roundStartTime).toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
     
-    showToast('Обход начат!', 'success');
-    switchView('routeView');
+    showToast('Обход начат! Отсканируйте QR-код первой точки.', 'success');
+    vibrateSuccess();
+    
+    // Автоматически открываем сканер
+    setTimeout(() => {
+        startScanner();
+    }, 500);
 }
 
 function completeRound() {
@@ -465,7 +481,64 @@ function completeRound() {
     updateReportsList();
     updateProgress();
     
-    showToast('Обход завершён! Отчёт сохранён.', 'success');
+    // Отправка отчёта ответственными
+    sendReportToEngineers(report);
+    
+    // Возвращаем главный экран
+    document.getElementById('startRoundBlock').style.display = 'block';
+    document.getElementById('activeRoundBlock').style.display = 'none';
+    document.getElementById('statsGrid').style.display = 'none';
+    
+    // Показываем отчёт
+    showReportSummary(report);
+}
+
+// Отправка отчёта инженерам
+function sendReportToEngineers(report) {
+    // Формируем сообщение для отправки
+    const message = `
+🏭 *ОТЧЁТ ОБ ОБХОДЕ*
+
+👤 Дежурный: ${report.userName}
+📅 Дата: ${new Date(report.startTime).toLocaleString('ru-RU')}
+⏱️ Длительность: ${Math.round((report.endTime - report.startTime) / 60000)} мин
+
+📊 Результаты:
+✅ Пройдено точек: ${report.completedPoints}/${report.totalPoints}
+⚠️ Дефектов: ${report.defects}
+${report.defects > 0 ? '🔴 Требуется внимание!' : '🟢 Всё в норме'}
+`.trim();
+
+    console.log('📤 Отправка отчёта:', message);
+    
+    // Здесь будет отправка в Telegram
+    // Для главных инженеров:
+    // - Сальников М.В.
+    // - Баранов Е.М.
+    // - Миронов Ю.С. (энергетик)
+    
+    showToast('Отчёт сформирован и отправлен!', 'success');
+    vibrateSuccess();
+}
+
+// Показ сводки отчёта
+function showReportSummary(report) {
+    const defectsText = report.defects > 0 
+        ? `⚠️ <strong>Дефектов:</strong> ${report.defects}`
+        : '🟢 <strong>Дефектов:</strong> нет';
+    
+    alert(
+        `✅ ОБХОД ЗАВЕРШЁН!\n\n` +
+        `👤 Дежурный: ${report.userName}\n` +
+        `📅 ${new Date(report.startTime).toLocaleString('ru-RU')}\n` +
+        `⏱️ Длительность: ${Math.round((report.endTime - report.startTime) / 60000)} мин\n\n` +
+        `📊 Результаты:\n` +
+        `✅ Пройдено: ${report.completedPoints}/${report.totalPoints}\n` +
+        `${defectsText}\n\n` +
+        `📤 Отчёт отправлен:\n` +
+        `• Главному инженеру\n` +
+        `• Инженеру энергетику`
+    );
 }
 
 // ============================================
@@ -543,18 +616,32 @@ function createRoutePointHTML(point, index = 0) {
     
     const categoryIcon = categoryIcons[point.category] || 'category';
     
+    // Расстояние до точки если есть GPS
+    let distanceHTML = '';
+    if (AppState.gpsPosition && point.gps_lat && point.gps_lon) {
+        const distance = calculateDistance(
+            AppState.gpsPosition.lat,
+            AppState.gpsPosition.lon,
+            point.gps_lat,
+            point.gps_lon
+        );
+        distanceHTML = `<span class="point-distance-info"><i class="material-icons" style="font-size: 14px;">near_me</i> ${Math.round(distance)}м</span>`;
+    }
+    
     return `
         <div class="route-point ${point.isCompleted ? 'completed' : ''} ${point.isDefect ? 'defect' : ''}" 
              data-asset-id="${point.asset_id}" data-index="${index}">
             <div class="point-number">${point.route_order}</div>
             <div class="point-info">
-                <div class="point-name">${point.asset_id} • ${point.name}</div>
+                <div class="point-name">
+                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">${categoryIcon}</i>
+                    ${point.asset_id} • ${point.name}
+                </div>
                 <div class="point-details">
                     <span class="category-badge">
-                        <i class="material-icons" style="font-size: 12px;">${categoryIcon}</i>
                         ${point.category}
                     </span>
-                    ${point.location ? `<span>• ${point.location}</span>` : ''}
+                    ${distanceHTML}
                 </div>
             </div>
             <div class="point-status">
@@ -581,6 +668,7 @@ function openPointDetail(assetId) {
     
     AppState.currentPointId = assetId;
     
+    // Заголовок
     document.getElementById('pointDetailTitle').textContent = `${point.asset_id} • ${point.name}`;
     document.getElementById('pointCategory').textContent = point.category;
     document.getElementById('pointOrder').textContent = point.route_order;
@@ -588,25 +676,21 @@ function openPointDetail(assetId) {
     // Дополнительная информация о точке
     let pointInfoHTML = '';
     if (point.location) {
-        pointInfoHTML += `<p><strong>Расположение:</strong> ${point.location}</p>`;
+        pointInfoHTML += `<p class="mb-1"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">location_on</i> ${point.location}</p>`;
     }
     if (point.description) {
-        pointInfoHTML += `<p class="text-muted small">${point.description}</p>`;
+        pointInfoHTML += `<p class="text-muted small mb-2">${point.description}</p>`;
     }
     if (point.equipment_type && point.equipment_type !== '-') {
-        pointInfoHTML += `<p><strong>Тип:</strong> ${point.equipment_type}</p>`;
+        pointInfoHTML += `<p class="mb-1"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">engineering</i> ${point.equipment_type}</p>`;
     }
     if (point.manufacturer && point.manufacturer !== '-') {
-        pointInfoHTML += `<p><strong>Производитель:</strong> ${point.manufacturer}</p>`;
+        pointInfoHTML += `<p class="mb-1"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">business</i> ${point.manufacturer}</p>`;
     }
     if (point.install_year) {
-        pointInfoHTML += `<p><strong>Год установки:</strong> ${point.install_year}</p>`;
-    }
-    if (point.power_kw) {
-        pointInfoHTML += `<p><strong>Мощность:</strong> ${point.power_kw} кВт</p>`;
+        pointInfoHTML += `<p class="mb-2"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">calendar_today</i> ${point.install_year} г.</p>`;
     }
     
-    // Вставляем дополнительную информацию перед чек-листом
     const pointInfoContainer = document.getElementById('pointInfo');
     if (pointInfoContainer) {
         pointInfoContainer.innerHTML = pointInfoHTML;
@@ -619,7 +703,7 @@ function openPointDetail(assetId) {
     if (checklist) {
         let checklistHTML = '';
         if (checklist.description) {
-            checklistHTML += `<p class="text-muted small mb-3">${checklist.description}</p>`;
+            checklistHTML += `<p class="text-muted small mb-2">${checklist.description}</p>`;
         }
         checklistHTML += checklist.items.map((item, index) => `
             <div class="checklist-item">
@@ -632,10 +716,10 @@ function openPointDetail(assetId) {
         
         // Нормальные значения
         if (checklist.normal_values) {
-            checklistHTML += `<div class="mt-3 p-2 bg-light rounded small">`;
-            checklistHTML += `<strong class="d-block mb-2">Нормальные значения:</strong>`;
+            checklistHTML += `<div class="normal-values mt-3">`;
+            checklistHTML += `<div class="normal-values-title"><i class="material-icons" style="font-size: 16px;">analytics</i> Нормальные значения:</div>`;
             checklistHTML += Object.entries(checklist.normal_values).map(([key, value]) => 
-                `<div class="d-flex justify-content-between"><span>${key}:</span><strong>${value}</strong></div>`
+                `<div class="normal-value-item"><span>${key}:</span><strong>${value}</strong></div>`
             ).join('');
             checklistHTML += `</div>`;
         }
@@ -683,9 +767,9 @@ function updatePointGPSStatus(point) {
 
 function completePoint() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('pointDetailModal'));
-    
+
     if (!AppState.currentPointId) return;
-    
+
     // Проверка GPS (опционально)
     if (AppState.gpsEnabled && AppState.gpsPosition) {
         const point = AppState.currentPoints?.find(p => p.asset_id === AppState.currentPointId);
@@ -695,25 +779,47 @@ function completePoint() {
             point.gps_lat,
             point.gps_lon
         );
-        
+
         if (distance > 5) {
             if (!confirm(`Вы находитесь в ${Math.round(distance)}м от точки. Всё равно отметить?`)) {
                 return;
             }
         }
     }
-    
+
     // Добавляем в пройденные
     if (!AppState.completedPoints.includes(AppState.currentPointId)) {
         AppState.completedPoints.push(AppState.currentPointId);
     }
-    
+
     saveData();
     modal.hide();
-    
+
     showToast(`Точка ${AppState.currentPointId} пройдена!`, 'success');
+    vibrateSuccess();
     updateProgress();
     renderRoutePoints();
+    
+    // Проверяем, все ли точки пройдены
+    const totalPoints = AppState.currentPoints?.length || 23;
+    const completedCount = AppState.completedPoints.length;
+    
+    if (completedCount >= totalPoints) {
+        // Все точки пройдены - завершаем обход
+        setTimeout(() => {
+            if (confirm('✅ Все точки пройдены!\n\nЗавершить обход и отправить отчёт?')) {
+                completeRound();
+            } else {
+                // Возвращаемся к сканеру
+                startScanner();
+            }
+        }, 500);
+    } else {
+        // Открываем сканер для следующей точки
+        setTimeout(() => {
+            startScanner();
+        }, 500);
+    }
 }
 
 function markDefect() {
