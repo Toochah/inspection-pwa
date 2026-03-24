@@ -992,6 +992,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 // Сканер
 // ============================================
 function startScanner() {
+    console.log('📷 startScanner вызван');
+    
     const modal = new bootstrap.Modal(document.getElementById('scannerModal'));
     modal.show();
 
@@ -1018,6 +1020,7 @@ function startScanner() {
         navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => {
                 video.srcObject = stream;
+                console.log('📷 Камера включена');
                 showToast('📷 Камера включена. Введите код точки вручную.', 'info');
             })
             .catch(err => {
@@ -1029,6 +1032,7 @@ function startScanner() {
     // Обработчик кнопки закрытия
     const closeBtn = document.querySelector('#scannerModal .scanner-close');
     closeBtn.onclick = () => {
+        console.log('❌ Закрытие сканера');
         if (video.srcObject) {
             video.srcObject.getTracks().forEach(track => track.stop());
         }
@@ -1037,38 +1041,56 @@ function startScanner() {
     
     // Обработчик ручного ввода (каждый раз при открытии)
     const manualBtn = document.getElementById('manualAssetBtn');
+    const manualInput = document.getElementById('manualAssetCode');
+    
+    console.log('🔘 manualBtn:', manualBtn);
+    console.log('📝 manualInput:', manualInput);
+    
     if (manualBtn) {
-        // Удаляем старый обработчик
+        // Удаляем старый обработчик клонированием
         const newBtn = manualBtn.cloneNode(true);
         manualBtn.parentNode.replaceChild(newBtn, manualBtn);
         
         // Добавляем новый обработчик
-        newBtn.addEventListener('click', handleManualAsset);
+        newBtn.addEventListener('click', () => {
+            console.log('🔘 Кнопка OK нажата');
+            handleManualAsset();
+        });
+        console.log('✅ Обработчик OK добавлен');
     }
     
     // Обработчик Enter в поле ввода
-    const manualInput = document.getElementById('manualAssetCode');
     if (manualInput) {
         manualInput.value = ''; // Очищаем поле
         manualInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                console.log('↩️ Enter нажат');
                 handleManualAsset();
             }
         });
+        console.log('✅ Обработчик Enter добавлен');
     }
 }
 
 function handleManualAsset() {
+    console.log('🔤 handleManualAsset вызван');
+    
     const code = document.getElementById('manualAssetCode').value.trim().toUpperCase();
+    console.log('🔤 Введённый код:', code);
+    
     if (!code) {
         showToast('Введите код точки', 'warning');
+        console.log('⚠️ Код пустой');
         return;
     }
 
     const point = AppState.currentPoints?.find(p => p.asset_id === code);
+    console.log('🔍 Точка найдена:', point);
+    
     if (point) {
         // Закрываем сканер
         const scannerModal = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
+        console.log('🚪 scannerModal:', scannerModal);
         if (scannerModal) {
             scannerModal.hide();
         }
@@ -1081,6 +1103,7 @@ function handleManualAsset() {
         
         // Открываем точку
         setTimeout(() => {
+            console.log('📍 openPointDetail:', code);
             openPointDetail(code);
         }, 300);
         
@@ -1096,6 +1119,7 @@ function handleManualAsset() {
         renderScanHistory();
     } else {
         showToast('Точка не найдена. Код: ' + code, 'warning');
+        console.log('❌ Точка не найдена:', code);
     }
 }
 
