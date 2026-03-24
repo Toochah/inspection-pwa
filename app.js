@@ -1037,13 +1037,34 @@ function startScanner() {
 
 function handleManualAsset() {
     const code = document.getElementById('manualAssetCode').value.trim().toUpperCase();
-    if (!code) return;
-    
+    if (!code) {
+        showToast('Введите код точки', 'warning');
+        return;
+    }
+
     const point = AppState.currentPoints?.find(p => p.asset_id === code);
     if (point) {
-        openPointDetail(code);
-        document.getElementById('manualAssetCode').value = '';
+        // Закрываем сканер
+        const scannerModal = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
+        if (scannerModal) {
+            scannerModal.hide();
+        }
         
+        // Останавливаем камеру
+        const video = document.getElementById('scannerVideo');
+        if (video && video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        
+        // Открываем точку
+        setTimeout(() => {
+            openPointDetail(code);
+        }, 300);
+        
+        // Очищаем поле
+        document.getElementById('manualAssetCode').value = '';
+
+        // История
         AppState.scanHistory.unshift({
             asset_id: code,
             timestamp: Date.now(),
@@ -1051,7 +1072,7 @@ function handleManualAsset() {
         });
         renderScanHistory();
     } else {
-        showToast('Точка не найдена', 'warning');
+        showToast('Точка не найдена. Код: ' + code, 'warning');
     }
 }
 
